@@ -91,7 +91,8 @@ El instalador se generará en la carpeta `dist/` con las configuraciones persona
 
 ## 👤 Autor
 
-Desarrollado y mantenido por **David** ([Caronte12715](https://github.com/Caronte12715)).
+Desarrollado y mantenido por **David Guevara** ([Caronte12715](https://github.com/Caronte12715)).
+
 
 ---
 
