@@ -4,6 +4,13 @@
   <strong>Una alternativa profesional, moderna y personalizable a H2R Graphics.</strong>
 </p>
 
+<p align="center">
+  <a href="https://github.com/Caronte12715/graphicslive/releases/tag/v1.1.0">
+    <img src="https://img.shields.io/badge/Descargar%20para%20Windows-v1.1.0-blue?style=for-the-badge&logo=windows&logoColor=white" alt="Descargar para Windows" />
+  </a>
+</p>
+
+
 ---
 
 **Orbit** es una aplicación de escritorio desarrollada con **Electron** diseñada para productores de contenido y realizadores de transmisiones en vivo. Permite renderizar overlays gráficos dinámicos y profesionales en tiempo real, ideales para integrarse directamente con softwares de streaming como **OBS Studio**, **vMix**, **Wirecast**, etc.
