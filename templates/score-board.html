@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Marcador Deportivo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:1920px; height:1080px; background:transparent; overflow:hidden; font-family:'Inter',sans-serif; }
+
+    #scoreboard {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-140%);
+      opacity: 0;
+      transition: transform .7s cubic-bezier(0.16,1,0.3,1), opacity .4s ease;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      min-width: 520px;
+    }
+    #scoreboard.in { transform: translateX(-50%) translateY(0); opacity: 1; }
+    #scoreboard.out { transform: translateX(-50%) translateY(-140%); opacity: 0; transition: all .4s ease; }
+
+    .team-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(10,10,20,0.92);
+      backdrop-filter: blur(12px);
+      padding: 12px 22px;
+      border-bottom: 3px solid var(--team-color, #7c3aed);
+      min-width: 180px;
+    }
+    .team-block.home {
+      --team-color: #3b82f6;
+      border-radius: 10px 0 0 10px;
+      border-bottom-color: #3b82f6;
+      flex-direction: row-reverse;
+    }
+    .team-block.away {
+      --team-color: #ef4444;
+      border-radius: 0 10px 10px 0;
+      border-bottom-color: #ef4444;
+    }
+
+    .team-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: #fff;
+    }
+    .team-badge {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--team-color, #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .score-center {
+      background: rgba(5,5,12,0.96);
+      backdrop-filter: blur(12px);
+      padding: 10px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      border-top: 3px solid #7c3aed;
+      position: relative;
+    }
+
+    .score-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 44px;
+      letter-spacing: 6px;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .score-sep {
+      color: #555;
+      font-size: 44px;
+      font-family: 'Bebas Neue', sans-serif;
+      line-height: 1;
+      padding: 0 4px;
+    }
+
+    .score-numbers {
+      display: flex;
+      align-items: center;
+    }
+
+    .score-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #7c3aed;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .score-time {
+      font-size: 12px;
+      color: #aaa;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    /* Gol flash */
+    @keyframes gol-flash {
+      0%,100%{ background:rgba(5,5,12,0.96); }
+      50%    { background:rgba(234,179,8,0.3); }
+    }
+    .score-center.gol { animation: gol-flash 0.5s ease 3; }
+  </style>
+</head>
+<body>
+  <div id="scoreboard">
+    <div class="team-block home">
+      <div class="team-badge" id="home-badge">⚽</div>
+      <div class="team-name" id="home-name">LOCAL</div>
+    </div>
+    <div class="score-center" id="score-center">
+      <div class="score-label" id="score-label">EN VIVO</div>
+      <div class="score-numbers">
+        <div class="score-display" id="home-score">0</div>
+        <div class="score-sep">–</div>
+        <div class="score-display" id="away-score">0</div>
+      </div>
+      <div class="score-time" id="score-time">45'</div>
+    </div>
+    <div class="team-block away">
+      <div class="team-badge" id="away-badge">⚽</div>
+      <div class="team-name" id="away-name">VISITA</div>
+    </div>
+  </div>
+
+  <script>
+    const p = new URLSearchParams(window.location.search);
+    document.getElementById('home-name').textContent   = p.get('local')   || 'LOCAL';
+    document.getElementById('away-name').textContent   = p.get('visita')  || 'VISITA';
+    document.getElementById('home-score').textContent  = p.get('goles_l') || '0';
+    document.getElementById('away-score').textContent  = p.get('goles_v') || '0';
+    document.getElementById('score-time').textContent  = p.get('tiempo')  || "45'";
+    document.getElementById('score-label').textContent = p.get('deporte') || 'EN VIVO';
+    if (p.get('icono_l')) document.getElementById('home-badge').textContent = p.get('icono_l');
+    if (p.get('icono_v')) document.getElementById('away-badge').textContent = p.get('icono_v');
+
+    const sb = document.getElementById('scoreboard');
+    setTimeout(() => sb.classList.add('in'), 100);
+
+    window.addEventListener('message', (e) => {
+      const { action, variables: v } = e.data || {};
+      if (action === 'out') { sb.classList.remove('in'); sb.classList.add('out'); }
+      if (action === 'update' && v) {
+        if (v.local)   document.getElementById('home-name').textContent  = v.local;
+        if (v.visita)  document.getElementById('away-name').textContent  = v.visita;
+        if (v.goles_l) { document.getElementById('home-score').textContent = v.goles_l; document.getElementById('score-center').classList.add('gol'); setTimeout(()=>document.getElementById('score-center').classList.remove('gol'), 1600); }
+        if (v.goles_v) { document.getElementById('away-score').textContent = v.goles_v; document.getElementById('score-center').classList.add('gol'); setTimeout(()=>document.getElementById('score-center').classList.remove('gol'), 1600); }
+        if (v.tiempo)  document.getElementById('score-time').textContent = v.tiempo;
+      }
+    });
+  </script>
+</body>
+</html>

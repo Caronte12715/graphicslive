@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Bug de Canal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 1920px; height: 1080px;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    #bug {
+      position: absolute;
+      top: 40px;
+      right: 60px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    #bug.in {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    #bug.out {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    #bug-box {
+      background: rgba(124,58,237,0.9);
+      backdrop-filter: blur(8px);
+      border-radius: 8px;
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(124,58,237,0.3);
+    }
+
+    #canal-name {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    /* Versión con punto en vivo */
+    #live-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+      animation: blink 1s ease infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bug">
+    <div id="live-dot" id="live-indicator"></div>
+    <div id="bug-box">
+      <div id="canal-name">CANAL</div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const nombre = params.get('canal') || 'CANAL';
+    const showLive = params.get('live') !== 'false';
+
+    document.getElementById('canal-name').textContent = nombre;
+    document.getElementById('live-dot').style.display = showLive ? 'block' : 'none';
+
+    const bug = document.getElementById('bug');
+    setTimeout(() => bug.classList.add('in'), 100);
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'out') {
+        bug.classList.remove('in');
+        bug.classList.add('out');
+      }
+      if (e.data?.action === 'update') {
+        const v = e.data.variables || {};
+        if (v.canal) document.getElementById('canal-name').textContent = v.canal;
+      }
+    });
+  </script>
+</body>
+</html>

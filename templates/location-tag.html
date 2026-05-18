@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Location Tag</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+      padding: 60px 0 0 60px;
+    }
+
+    .location-wrapper {
+      position: relative;
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    .location-wrapper.active {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .location-wrapper.exit {
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .location-pill {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 30px;
+      padding: 10px 30px 10px 15px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .icon-bg {
+      background: #ef4444;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-right: 15px;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+    }
+
+    .icon-bg svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+
+    .location-text {
+      color: #1e293b;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="location-wrapper" id="panel">
+    <div class="location-pill">
+      <div class="icon-bg">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 0c-4.198 0-8 3.403-8 7.602 0 4.198 3.469 9.21 8 16.398 4.531-7.188 8-12.2 8-16.398 0-4.199-3.801-7.602-8-7.602zm0 11c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"/>
+        </svg>
+      </div>
+      <div class="location-text" id="location">Ciudad de México, MX</div>
+    </div>
+  </div>
+
+  <script>
+    let isVisible = false;
+    const panel = document.getElementById('panel');
+
+    function play() {
+      if (isVisible) {
+        panel.classList.remove('active');
+        panel.classList.add('exit');
+        setTimeout(() => panel.classList.remove('exit'), 500); 
+        isVisible = false;
+      } else {
+        panel.classList.remove('exit');
+        void panel.offsetWidth;
+        panel.classList.add('active');
+        isVisible = true;
+      }
+    }
+
+    function update(incomingChange) {
+      try {
+        const changes = JSON.parse(incomingChange);
+        Object.entries(changes).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el && value !== undefined) {
+            el.innerText = value;
+          }
+        });
+      } catch (e) {
+        console.error("Error al actualizar:", e);
+      }
+    }
+  
+    // Fallback: escuchar mensajes postMessage de Orbit y leer URL params
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'update' && e.data.variables) {
+        if (typeof update === 'function') {
+          update(JSON.stringify(e.data.variables));
+        }
+      }
+      if (e.data?.action === 'out') {
+        if (typeof play === 'function') {
+          if (isVisible) play();
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const vars = {};
+      for(let [k,v] of params) {
+        if(k !== 'path') vars[k] = v;
+      }
+      if(Object.keys(vars).length > 0 && typeof update === 'function') {
+        update(JSON.stringify(vars));
+      }
+    });
+  </script>
+
+  <script name="graphics-data-definition" type="application/json+gdd">
+    {
+      "$schema": "https://superflytv.github.io/GraphicsDataDefinition/gdd-meta-schema/v1/schema.json",
+      "title": "Ubicación (Location Tag)",
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string",
+          "label": "Ubicación",
+          "default": "Ciudad de México, MX",
+          "gddType": "single-line"
+        }
+      }
+    }
+  </script>
+</body>
+</html>

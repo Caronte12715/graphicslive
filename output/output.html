@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbit — Output</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    #graphic-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* Cada slot de gráfico */
+    .graphic-slot {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .graphic-slot iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+    }
+
+    /* Animaciones de entrada/salida */
+    .graphic-slot.entering-fade { animation: gl-fadein 0.3s ease forwards; }
+    .graphic-slot.leaving-fade { animation: gl-fadeout 0.3s ease forwards; }
+
+    .graphic-slot.entering-slide-left { animation: gl-slide-in-left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .graphic-slot.leaving-slide-left { animation: gl-slide-out-left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    
+    .graphic-slot.entering-slide-right { animation: gl-slide-in-right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .graphic-slot.leaving-slide-right { animation: gl-slide-out-right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    
+    .graphic-slot.entering-slide-up { animation: gl-slide-in-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .graphic-slot.leaving-slide-up { animation: gl-slide-out-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    
+    .graphic-slot.entering-slide-down { animation: gl-slide-in-down 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .graphic-slot.leaving-slide-down { animation: gl-slide-out-down 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+    .graphic-slot.entering-zoom { animation: gl-zoom-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .graphic-slot.leaving-zoom { animation: gl-zoom-out 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+    .graphic-slot.entering-spin { animation: gl-spin-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .graphic-slot.leaving-spin { animation: gl-spin-out 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+    @keyframes gl-fadein { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes gl-fadeout { from { opacity: 1; } to { opacity: 0; } }
+
+    @keyframes gl-slide-in-left { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes gl-slide-out-left { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-50px); } }
+
+    @keyframes gl-slide-in-right { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes gl-slide-out-right { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(50px); } }
+
+    @keyframes gl-slide-in-up { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes gl-slide-out-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
+
+    @keyframes gl-slide-in-down { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes gl-slide-out-down { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(50px); } }
+
+    @keyframes gl-zoom-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    @keyframes gl-zoom-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.1); } }
+
+    @keyframes gl-spin-in { from { opacity: 0; transform: scale(0.8) rotate(-15deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
+    @keyframes gl-spin-out { from { opacity: 1; transform: scale(1) rotate(0deg); } to { opacity: 0; transform: scale(1.1) rotate(15deg); } }
+  </style>
+</head>
+<body>
+  <div id="graphic-container"></div>
+
+  <script>
+    // ─── Estado de gráficos activos ─────────────────────────────────────────
+    const activeGraphics = new Map(); // graphicId → { slot, iframe, mode }
+    const container = document.getElementById('graphic-container');
+
+    // ─── WebSocket: conectar al servidor local ──────────────────────────────
+    let ws;
+    let reconnectTimer;
+
+    function connect() {
+      ws = new WebSocket(`ws://${location.host}`);
+
+      ws.onopen = () => {
+        console.log('[Orbit Output] WebSocket conectado');
+        clearTimeout(reconnectTimer);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          handleMessage(msg);
+        } catch (e) {
+          console.error('[Orbit Output] Error parseando mensaje:', e);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('[Orbit Output] WebSocket cerrado, reconectando...');
+        reconnectTimer = setTimeout(connect, 2000);
+      };
+
+      ws.onerror = (err) => {
+        console.error('[Orbit Output] Error WS:', err);
+        ws.close();
+      };
+    }
+
+    // ─── Manejar mensajes del Control Panel ────────────────────────────────
+    function handleMessage(msg) {
+      const { action, graphicId, filePath, variables, zIndex, transition, layout } = msg;
+
+      switch (action) {
+        case 'show':
+          showGraphic({ graphicId, filePath, variables, zIndex: zIndex || 10, transition, layout });
+          break;
+        case 'hide':
+          hideGraphic(graphicId, transition);
+          break;
+        case 'update':
+          updateGraphicVariables(graphicId, variables, layout);
+          break;
+        case 'hideAll':
+          hideAll(transition);
+          break;
+      }
+    }
+
+    // ─── Aplicar Escala y Posición ──────────────────────────────────────────
+    function applyLayout(slot, layout) {
+      if (!layout) return;
+      const iframe = slot.querySelector('iframe');
+      if (iframe) {
+        // Escalar y trasladar desde el centro
+        iframe.style.transform = `translate(${layout.posX}px, ${layout.posY}px) scale(${layout.scale})`;
+        iframe.style.transformOrigin = 'center center';
+        iframe.style.transition = 'transform 0.15s ease-out';
+      }
+    }
+
+    // ─── Detectar modo del gráfico (H2R vs nativo) ─────────────────────────
+    function detectGraphicMode(iframeWin) {
+      try {
+        // Verificar si el gráfico tiene funciones play() y update() (modo H2R)
+        if (typeof iframeWin.play === 'function') {
+          return 'h2r';
+        }
+      } catch (e) {}
+      return 'native'; // Modo GraphicsLive nativo (postMessage)
+    }
+
+    // ─── Mostrar gráfico ────────────────────────────────────────────────────
+    function showGraphic({ graphicId, filePath, variables, zIndex, transition, layout }) {
+      // Si ya existe, actualizamos variables y hacemos play() si es H2R
+      if (activeGraphics.has(graphicId)) {
+        const entry = activeGraphics.get(graphicId);
+        updateGraphicVariables(graphicId, variables, layout);
+        // Para H2R: re-llamar play() para re-mostrar
+        if (entry.mode === 'h2r') {
+          try { entry.iframe.contentWindow.play(); } catch (e) {}
+        }
+        return;
+      }
+
+      const type = transition?.type || 'fade';
+      const duration = transition?.duration || 600;
+
+      const slot = document.createElement('div');
+      slot.className = `graphic-slot entering-${type}`;
+      slot.style.zIndex = zIndex;
+      slot.style.animationDuration = `${duration}ms`;
+      slot.dataset.graphicId = graphicId;
+
+      // Construir URL del gráfico con variables como query params
+      const url = buildGraphicUrl(filePath, variables);
+
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.setAttribute('allowtransparency', 'true');
+      iframe.style.background = 'transparent';
+
+      slot.appendChild(iframe);
+      container.appendChild(slot);
+      
+      applyLayout(slot, layout);
+
+      slot.addEventListener('animationend', () => {
+        slot.classList.remove(`entering-${type}`);
+      }, { once: true });
+
+      // Almacenar referencia — el modo se detectará cuando el iframe cargue
+      const entry = { slot, iframe, mode: 'native', variables: variables || {} };
+      activeGraphics.set(graphicId, entry);
+
+      // Cuando el iframe termine de cargar, detectar modo y hacer play()
+      iframe.addEventListener('load', () => {
+        try {
+          const iframeWin = iframe.contentWindow;
+          entry.mode = detectGraphicMode(iframeWin);
+          console.log(`[Output] Gráfico ${graphicId} modo: ${entry.mode}`);
+
+          if (entry.mode === 'h2r') {
+            // Actualizar variables vía update() antes de play()
+            if (variables && Object.keys(variables).length > 0) {
+              try {
+                iframeWin.update(JSON.stringify(variables));
+              } catch (e) {}
+            }
+            // Llamar play() para mostrar (toggle en H2R)
+            try {
+              iframeWin.play();
+            } catch (e) {}
+          }
+        } catch (e) {
+          console.warn('[Output] No se pudo detectar modo:', e.message);
+        }
+      });
+    }
+
+    // ─── Ocultar gráfico ────────────────────────────────────────────────────
+    function hideGraphic(graphicId, transition) {
+      const entry = activeGraphics.get(graphicId);
+      if (!entry) return;
+
+      const { slot, iframe, mode } = entry;
+      const type = transition?.type || 'fade';
+      const outDuration = transition?.duration || 600;
+
+      try {
+        const iframeWin = iframe.contentWindow;
+        if (mode === 'h2r') {
+          // H2R: llamar play() para toggle off
+          iframeWin.play();
+        } else {
+          // Nativo: enviar postMessage
+          iframeWin.postMessage({ action: 'out' }, '*');
+        }
+      } catch (e) {}
+
+      slot.classList.add(`leaving-${type}`);
+      slot.style.animationDuration = `${outDuration}ms`;
+      setTimeout(() => {
+        slot.remove();
+        activeGraphics.delete(graphicId);
+      }, outDuration);
+    }
+
+    // ─── Actualizar variables de un gráfico activo ──────────────────────────
+    function updateGraphicVariables(graphicId, variables, layout) {
+      const entry = activeGraphics.get(graphicId);
+      if (!entry) return;
+
+      if (layout) {
+        applyLayout(entry.slot, layout);
+      }
+
+      if (!variables) return;
+
+      // Guardar referencia actualizada
+      entry.variables = { ...entry.variables, ...variables };
+
+      try {
+        const iframeWin = entry.iframe.contentWindow;
+        if (entry.mode === 'h2r') {
+          // H2R: usar update(JSON.stringify({...}))
+          if (typeof iframeWin.update === 'function') {
+            iframeWin.update(JSON.stringify(variables));
+          }
+        }
+        // Siempre enviar postMessage por seguridad (fallback)
+        iframeWin.postMessage({ action: 'update', variables }, '*');
+      } catch (e) {}
+    }
+
+    // ─── Ocultar todos ──────────────────────────────────────────────────────
+    function hideAll(transition) {
+      activeGraphics.forEach((_, id) => hideGraphic(id, transition));
+    }
+
+    // ─── Construir URL para cargar el gráfico ───────────────────────────────
+    function buildGraphicUrl(filePath, variables) {
+      const encoded = encodeURIComponent(filePath);
+      let url = `/graphic-file?path=${encoded}`;
+      if (variables) {
+        Object.entries(variables).forEach(([k, v]) => {
+          url += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+        });
+      }
+      return url;
+    }
+
+    // ─── Iniciar ────────────────────────────────────────────────────────────
+    connect();
+  </script>
+</body>
+</html>

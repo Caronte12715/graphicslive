@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pastor Lower Third</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Montserrat:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    /* Posicionamiento en pantalla (inferior izquierda) */
+    body {
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-end;
+      padding: 0 0 80px 90px;
+    }
+
+    /* ══ CONTENEDOR PRINCIPAL (Animaciones In/Out) ══ */
+    .lt-wrapper {
+      width: 760px;
+      position: relative;
+      opacity: 0;
+      transform: translateY(40px) scale(0.95);
+      transition: none; /* Se maneja con clases .active y .exit */
+    }
+
+    .lt-wrapper.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .lt-wrapper.exit {
+      opacity: 0;
+      transform: translateY(30px) scale(0.98);
+      transition: opacity 0.45s cubic-bezier(0.55, 0, 1, 0.45), transform 0.45s cubic-bezier(0.55, 0, 1, 0.45);
+    }
+
+    /* ══ DISEÑO DE LA BARRA ══ */
+    .lt-bar {
+      background: rgba(12, 27, 48, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 24px 32px;
+      position: relative;
+      border: 1px solid rgba(196, 154, 92, 0.4);
+      border-left: 6px solid #c49a5c;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+      border-radius: 4px 12px 12px 4px;
+    }
+
+    .shimmer-bg {
+      position: absolute;
+      top: 0; left: -40%;
+      width: 40%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(196, 154, 92, 0.15), transparent);
+      transform: skewX(-12deg);
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    /* El brillo infinito solo funciona mientras está activo */
+    .lt-wrapper.active .shimmer-bg {
+      animation: sweep 6s 1s infinite ease-in-out;
+    }
+
+    @keyframes sweep {
+      0%, 10% { left: -40%; opacity: 0; }
+      50% { opacity: 1; }
+      100% { left: 140%; opacity: 0; }
+    }
+
+    /* ══ CONTENEDOR DE TEXTOS ══ */
+    .content-wrapper {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      flex-direction: column;
+    }
+
+    /* Texto principal (Nombre) */
+    .main-text {
+      font-family: 'Cinzel', serif;
+      font-size: 34px;
+      font-weight: 600;
+      color: #f6f7f9;
+      letter-spacing: 1.5px;
+      line-height: 1.2;
+      text-transform: uppercase;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.4s 0.3s ease, transform 0.4s 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .lt-wrapper.active .main-text { opacity: 1; transform: translateY(0); }
+    .lt-wrapper.exit .main-text { opacity: 0; transition: none; }
+
+    /* Decoración de doble línea */
+    .double-line {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      width: 100%;
+      padding-top: 6px;
+      opacity: 0;
+      transition: opacity 0.3s 0.4s ease;
+    }
+
+    .lt-wrapper.active .double-line { opacity: 1; }
+    .lt-wrapper.exit .double-line { opacity: 0; transition: none; }
+
+    .double-line span {
+      display: block;
+      height: 1.5px;
+      background: linear-gradient(90deg, #c49a5c 0%, #e8d1a3 50%, transparent 100%);
+      border-radius: 2px;
+      transform-origin: left;
+      transform: scaleX(0);
+    }
+
+    .double-line span:nth-child(1) { width: 60%; }
+    .double-line span:nth-child(2) {
+      width: 45%;
+      height: 1px;
+      background: linear-gradient(90deg, #c49a5c, #e8d1a3);
+      opacity: 0.6;
+      margin-top: -1px;
+    }
+
+    .lt-wrapper.active .double-line span {
+      animation: lineGrow 0.8s 0.45s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    }
+
+    @keyframes lineGrow {
+      to { transform: scaleX(1); }
+    }
+
+    /* Sub texto (Iglesia / Cargo) */
+    .sub-text {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      color: #b5c0cf;
+      letter-spacing: 2px;
+      line-height: 1.4;
+      margin-top: 6px;
+      text-transform: uppercase;
+      
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.4s 0.5s ease, transform 0.4s 0.5s ease;
+    }
+
+    .lt-wrapper.active .sub-text { opacity: 1; transform: translateY(0); }
+    .lt-wrapper.exit .sub-text { opacity: 0; transition: none; }
+
+  </style>
+</head>
+<body>
+  
+  <!-- Contenedor general que se oculta/muestra -->
+  <div class="lt-wrapper" id="panel">
+    <div class="lt-bar">
+      <div class="shimmer-bg"></div>
+      <div class="content-wrapper">
+        <div class="main-text" id="nombre">P.E. Raymundo Braund</div>
+        <div class="double-line"><span></span><span></span></div>
+        <div class="sub-text" id="iglesia">Iglesia La Luz Del Mundo</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ══ LÓGICA DE GRAPHICSLIVE / H2R ══
+    let isVisible = false;
+    const panel = document.getElementById('panel');
+
+    function play() {
+      if (isVisible) {
+        // Sacar de pantalla
+        panel.classList.remove('active');
+        panel.classList.add('exit');
+        setTimeout(() => panel.classList.remove('exit'), 500); 
+        isVisible = false;
+      } else {
+        // Entrar a pantalla
+        panel.classList.remove('exit');
+        void panel.offsetWidth; // Forzar reflow para reiniciar animaciones
+        panel.classList.add('active');
+        isVisible = true;
+      }
+    }
+
+    function update(incomingChange) {
+      try {
+        const changes = JSON.parse(incomingChange);
+        Object.entries(changes).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el && value !== undefined) {
+            el.innerText = value;
+          }
+        });
+      } catch (e) {
+        console.error("Error al actualizar:", e);
+      }
+    }
+  </script>
+
+  <!-- ══ DEFINICIÓN DE DATOS (Para paneles de control) ══ -->
+  <script name="graphics-data-definition" type="application/json+gdd">
+    {
+      "$schema": "https://superflytv.github.io/GraphicsDataDefinition/gdd-meta-schema/v1/schema.json",
+      "title": "Pastor Premium",
+      "type": "object",
+      "properties": {
+        "nombre": {
+          "type": "string",
+          "label": "Nombre del Pastor",
+          "default": "P.E. Raymundo Braund",
+          "gddType": "single-line"
+        },
+        "iglesia": {
+          "type": "string",
+          "label": "Iglesia / Ministerio",
+          "default": "Iglesia La Luz Del Mundo",
+          "gddType": "single-line"
+        }
+      }
+    }
+  </script>
+<script>
+    // Fallback: escuchar mensajes postMessage de Orbit y leer URL params
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'update' && e.data.variables) {
+        if (typeof update === 'function') {
+          update(JSON.stringify(e.data.variables));
+        }
+      }
+      if (e.data?.action === 'out') {
+        if (typeof play === 'function') {
+          if (isVisible) play();
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const vars = {};
+      for(let [k,v] of params) {
+        if(k !== 'path') vars[k] = v;
+      }
+      if(Object.keys(vars).length > 0 && typeof update === 'function') {
+        update(JSON.stringify(vars));
+      }
+    });
+  </script>
+</body>
+</html>

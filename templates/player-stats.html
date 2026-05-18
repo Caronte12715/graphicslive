@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Player Stats Graphic</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Rajdhani', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-end;
+      padding: 0 0 80px 80px;
+    }
+
+    .stats-wrapper {
+      position: relative;
+      opacity: 0;
+      transform: translateX(-100px) skewX(-10deg);
+      transition: none;
+    }
+
+    .stats-wrapper.active {
+      opacity: 1;
+      transform: translateX(0) skewX(0);
+      transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .stats-wrapper.exit {
+      opacity: 0;
+      transform: translateX(-50px) skewX(10deg);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .main-container {
+      display: flex;
+      box-shadow: 20px 20px 60px rgba(0,0,0,0.8);
+      position: relative;
+    }
+
+    .main-container::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: #00ffcc;
+      box-shadow: 0 0 15px #00ffcc;
+    }
+
+    /* Player Number and Name Section */
+    .player-header {
+      background: linear-gradient(135deg, #111827, #1f2937);
+      padding: 20px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-right: 2px solid rgba(255,255,255,0.1);
+    }
+
+    .player-number {
+      font-family: 'Teko', sans-serif;
+      font-size: 72px;
+      line-height: 0.8;
+      color: #00ffcc;
+      text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+    }
+
+    .player-name {
+      font-size: 32px;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 5px;
+    }
+
+    .player-role {
+      font-size: 18px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* Stats Section */
+    .stats-container {
+      background: rgba(17, 24, 39, 0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .stat-box {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 15px 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+      border-radius: 4px;
+    }
+
+    .stat-value {
+      font-family: 'Teko', sans-serif;
+      font-size: 48px;
+      line-height: 1;
+      color: #ffffff;
+    }
+
+    .stat-label {
+      font-size: 16px;
+      color: #00ffcc;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="stats-wrapper" id="panel">
+    <div class="main-container">
+      
+      <div class="player-header">
+        <div class="player-number" id="number">10</div>
+        <div class="player-name" id="name">Lionel Messi</div>
+        <div class="player-role" id="role">Delantero</div>
+      </div>
+
+      <div class="stats-container">
+        <div class="stat-box">
+          <div class="stat-value" id="stat1_val">45</div>
+          <div class="stat-label" id="stat1_lbl">GOLES</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat2_val">12</div>
+          <div class="stat-label" id="stat2_lbl">ASIST.</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat3_val">89%</div>
+          <div class="stat-label" id="stat3_lbl">PASES</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let isVisible = false;
+    const panel = document.getElementById('panel');
+
+    function play() {
+      if (isVisible) {
+        panel.classList.remove('active');
+        panel.classList.add('exit');
+        setTimeout(() => panel.classList.remove('exit'), 500); 
+        isVisible = false;
+      } else {
+        panel.classList.remove('exit');
+        void panel.offsetWidth;
+        panel.classList.add('active');
+        isVisible = true;
+      }
+    }
+
+    function update(incomingChange) {
+      try {
+        const changes = JSON.parse(incomingChange);
+        Object.entries(changes).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el && value !== undefined) {
+            el.innerText = value;
+          }
+        });
+      } catch (e) {
+        console.error("Error al actualizar:", e);
+      }
+    }
+  
+    // Fallback: escuchar mensajes postMessage de Orbit y leer URL params
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'update' && e.data.variables) {
+        if (typeof update === 'function') {
+          update(JSON.stringify(e.data.variables));
+        }
+      }
+      if (e.data?.action === 'out') {
+        if (typeof play === 'function') {
+          if (isVisible) play();
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const vars = {};
+      for(let [k,v] of params) {
+        if(k !== 'path') vars[k] = v;
+      }
+      if(Object.keys(vars).length > 0 && typeof update === 'function') {
+        update(JSON.stringify(vars));
+      }
+    });
+  </script>
+
+  <script name="graphics-data-definition" type="application/json+gdd">
+    {
+      "$schema": "https://superflytv.github.io/GraphicsDataDefinition/gdd-meta-schema/v1/schema.json",
+      "title": "Player Stats",
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "string",
+          "label": "Número de Jugador",
+          "default": "10",
+          "gddType": "single-line"
+        },
+        "name": {
+          "type": "string",
+          "label": "Nombre",
+          "default": "Lionel Messi",
+          "gddType": "single-line"
+        },
+        "role": {
+          "type": "string",
+          "label": "Posición / Rol",
+          "default": "Delantero",
+          "gddType": "single-line"
+        },
+        "stat1_lbl": {
+          "type": "string",
+          "label": "Etiqueta Stat 1",
+          "default": "GOLES",
+          "gddType": "single-line"
+        },
+        "stat1_val": {
+          "type": "string",
+          "label": "Valor Stat 1",
+          "default": "45",
+          "gddType": "single-line"
+        },
+        "stat2_lbl": {
+          "type": "string",
+          "label": "Etiqueta Stat 2",
+          "default": "ASIST.",
+          "gddType": "single-line"
+        },
+        "stat2_val": {
+          "type": "string",
+          "label": "Valor Stat 2",
+          "default": "12",
+          "gddType": "single-line"
+        },
+        "stat3_lbl": {
+          "type": "string",
+          "label": "Etiqueta Stat 3",
+          "default": "PASES",
+          "gddType": "single-line"
+        },
+        "stat3_val": {
+          "type": "string",
+          "label": "Valor Stat 3",
+          "default": "89%",
+          "gddType": "single-line"
+        }
+      }
+    }
+  </script>
+</body>
+</html>

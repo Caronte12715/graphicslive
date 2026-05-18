@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Orbit Remote</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --bg1: #0d0d0f;
+      --bg2: #111115;
+      --bg3: #18181d;
+      --surface: #1e1e26;
+      --border: #2a2a3a;
+      --border-h: #3d3d55;
+      --accent: #7c3aed;
+      --accent-h: #8b5cf6;
+      --accent-glow: rgba(124,58,237,.4);
+      --accent-soft: rgba(124,58,237,.12);
+      --green: #22c55e;
+      --green-soft: rgba(34,197,94,.12);
+      --red: #ef4444;
+      --red-soft: rgba(239,68,68,.12);
+      --text1: #f0f0f5;
+      --text2: #a1a1b5;
+      --text3: #666678;
+      --font: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; background: var(--bg); }
+    body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text1);
+      font-family: var(--font);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    /* ── Header ── */
+    #header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9,9,11,0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 12px;
+    }
+
+    #header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #logo-dot {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    #logo-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text1);
+    }
+
+    #logo-sub {
+      font-size: 10px;
+      color: var(--text3);
+      font-weight: 400;
+    }
+
+    #conn-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text3);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+    }
+
+    #conn-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text3);
+      transition: all .3s;
+    }
+    #conn-dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    #conn-dot.offline { background: var(--red); }
+
+    /* ── Hide All ── */
+    #hide-all-btn {
+      width: 100%;
+      margin-top: 10px;
+      background: var(--red-soft);
+      border: 1px solid rgba(239,68,68,.3);
+      color: var(--red);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      font-family: var(--font);
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #hide-all-btn:active { background: rgba(239,68,68,.25); transform: scale(0.98); }
+
+    /* ── Empty State ── */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      gap: 12px;
+      color: var(--text3);
+      text-align: center;
+    }
+
+    #empty-state .emoji { font-size: 40px; }
+    #empty-state p { font-size: 13px; line-height: 1.5; }
+    #empty-state .hint { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+    /* ── Graphics List ── */
+    #graphics-list {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Tarjeta de gráfico */
+    .g-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .g-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .g-card.active {
+      border-color: rgba(34,197,94,.4);
+      background: var(--green-soft);
+    }
+    .g-card.active::before { background: var(--green); opacity: 1; }
+
+    .g-icon {
+      font-size: 26px;
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: var(--bg3);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+
+    .g-card.active .g-icon {
+      background: var(--green-soft);
+      border-color: rgba(34,197,94,.3);
+    }
+
+    .g-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .g-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .g-meta {
+      font-size: 10px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    /* Botón IN/OUT */
+    .btn-trigger {
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      border: none;
+      letter-spacing: 0.5px;
+      transition: all .15s;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+
+    .btn-in {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn-in:active { transform: scale(0.92); box-shadow: none; }
+
+    .btn-out {
+      background: transparent;
+      border: 2px solid var(--green) !important;
+      color: var(--green);
+    }
+    .btn-out:active { transform: scale(0.92); background: var(--green-soft); }
+
+    /* ── Sections ── */
+    .section-header {
+      padding: 8px 12px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--text3);
+      text-transform: uppercase;
+    }
+
+    /* ── Status Bar Bottom ── */
+    #status-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    #output-url {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+    }
+
+    /* ── QR Code placeholder ── */
+    #qr-section {
+      margin: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    #qr-section h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+      margin-bottom: 4px;
+    }
+
+    #qr-section p {
+      font-size: 11px;
+      color: var(--text3);
+      line-height: 1.5;
+    }
+
+    /* Animación de pulso en botones activos */
+    @keyframes ring {
+      0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+      100% { box-shadow: 0 0 0 10px transparent; }
+    }
+
+    .g-card.active .btn-out {
+      animation: ring 2s ease infinite;
+    }
+
+    /* Safe area para iPhone */
+    #graphics-list { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+
+    /* ── Expandable Variable Editing ── */
+    .g-vars {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 0 4px;
+      border-top: 1px solid var(--border);
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .g-card.expanded .g-vars {
+      display: flex;
+    }
+
+    .g-var-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .g-var-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text2);
+    }
+
+    .g-var-input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text1);
+      font-size: 14px;
+      font-family: var(--font);
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+      user-select: text;
+    }
+
+    .g-var-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+
+    .g-var-input::placeholder {
+      color: var(--text3);
+      font-style: italic;
+    }
+
+    .g-expand-hint {
+      font-size: 10px;
+      color: var(--text3);
+      text-align: center;
+      padding: 2px 0 0;
+    }
+
+    .g-card.expanded {
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div id="header">
+    <div id="header-top">
+      <div id="logo">
+        <div id="logo-dot">📡</div>
+        <div>
+          <div id="logo-name">Orbit</div>
+          <div id="logo-sub">Panel Remoto</div>
+        </div>
+      </div>
+      <div id="conn-badge">
+        <div id="conn-dot"></div>
+        <span id="conn-text">Conectando</span>
+      </div>
+    </div>
+    <button id="hide-all-btn">⬛ OCULTAR TODO</button>
+  </div>
+
+  <!-- Lista de gráficos -->
+  <div id="empty-state" style="display:none">
+    <div class="emoji">📺</div>
+    <p>No hay gráficos cargados.<br>Cárgalos desde el Control Panel.</p>
+    <div class="hint">Abre GraphicsLive en la PC</div>
+  </div>
+
+  <div class="section-header" id="graphics-header" style="display:none">GRÁFICOS</div>
+  <div id="graphics-list"></div>
+
+  <div id="status-footer">
+    <div id="output-url">Esperando conexión...</div>
+  </div>
+
+  <script>
+    let ws;
+    let state = { graphics: [], activeGraphics: [] };
+    let reconnectTimer;
+
+    const host = window.location.host;
+
+    function connect() {
+      const wsUrl = `ws://${host}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        setConnStatus(true);
+        clearTimeout(reconnectTimer);
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'stateUpdate') {
+            state = msg.state;
+            renderGraphics();
+          }
+        } catch (err) {}
+      };
+
+      ws.onclose = () => {
+        setConnStatus(false);
+        reconnectTimer = setTimeout(connect, 2500);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    function setConnStatus(online) {
+      document.getElementById('conn-dot').className = online ? 'online' : 'offline';
+      document.getElementById('conn-text').textContent = online ? 'En línea' : 'Sin conexión';
+    }
+
+    function sendTrigger(payload) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+      } else {
+        // Fallback HTTP
+        fetch('/api/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      }
+    }
+
+    function renderGraphics() {
+      const list = document.getElementById('graphics-list');
+      const empty = document.getElementById('empty-state');
+      const header = document.getElementById('graphics-header');
+      const outputUrl = document.getElementById('output-url');
+
+      list.innerHTML = '';
+
+      if (!state.graphics || state.graphics.length === 0) {
+        empty.style.display = 'flex';
+        header.style.display = 'none';
+        list.style.display = 'none';
+        outputUrl.textContent = 'No hay gráficos cargados';
+        return;
+      }
+
+      empty.style.display = 'none';
+      header.style.display = 'block';
+      list.style.display = 'flex';
+      outputUrl.textContent = `${state.graphics.length} gráfico(s) · ${window.location.hostname}:3100`;
+
+      state.graphics.forEach(g => {
+        const isActive = state.activeGraphics.includes(`gl_${g.id}`);
+        const hasVars = g.variables && g.variables.length > 0;
+        const card = document.createElement('div');
+        card.className = `g-card${isActive ? ' active' : ''}`;
+
+        // Build variables HTML
+        let varsHtml = '';
+        if (hasVars) {
+          varsHtml = '<div class="g-vars">';
+          g.variables.forEach((v, idx) => {
+            const label = v.label || v.key || `Variable ${idx + 1}`;
+            varsHtml += `
+              <div class="g-var-field">
+                <label class="g-var-label">${escHtml(label)}</label>
+                <input type="text"
+                       class="g-var-input"
+                       placeholder="${escHtml(v.placeholder || '')}"
+                       value="${escHtml(v.value)}"
+                       data-gid="${g.id}"
+                       data-vidx="${idx}">
+              </div>
+            `;
+          });
+          varsHtml += '</div>';
+        }
+
+        card.innerHTML = `
+          <div class="g-icon">${g.icon || '🎨'}</div>
+          <div class="g-info">
+            <div class="g-name">${escHtml(g.name)}</div>
+            <div class="g-meta">Z:${g.zIndex || 10} · ${isActive ? '● EN VIVO' : '○ Standby'}${hasVars ? ' · tap para editar' : ''}</div>
+          </div>
+          <button class="btn-trigger ${isActive ? 'btn-out' : 'btn-in'}" data-id="${g.id}">
+            ${isActive ? 'OUT' : 'IN'}
+          </button>
+          ${varsHtml}
+        `;
+
+        // Tap on card (not button or input) → toggle expand
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-trigger') || e.target.closest('.g-var-input')) return;
+          card.classList.toggle('expanded');
+        });
+
+        // Variable inputs → update local state
+        card.querySelectorAll('.g-var-input').forEach(inp => {
+          inp.addEventListener('input', (e) => {
+            const gid = parseInt(e.target.dataset.gid);
+            const vidx = parseInt(e.target.dataset.vidx);
+            const graphic = state.graphics.find(x => x.id === gid);
+            if (graphic && graphic.variables[vidx]) {
+              graphic.variables[vidx].value = e.target.value;
+              sendUpdateIfActiveRemote(graphic);
+            }
+          });
+        });
+
+        card.querySelector('.btn-trigger').addEventListener('click', () => {
+          triggerGraphic(g, isActive);
+        });
+
+        list.appendChild(card);
+      });
+    }
+
+    function triggerGraphic(g, isActive) {
+      const variables = {};
+      (g.variables || []).forEach(v => { if (v.key) variables[v.key] = v.value; });
+
+      const payload = isActive
+        ? {
+            action: 'hide',
+            graphicId: `gl_${g.id}`,
+            transition: { duration: g.transitionDuration || 600 }
+          }
+        : {
+            action: 'show',
+            graphicId: `gl_${g.id}`,
+            filePath: g.filePath,
+            variables,
+            zIndex: g.zIndex || 10,
+            transition: { duration: g.transitionDuration || 600 }
+          };
+
+      sendTrigger(payload);
+    }
+
+    function sendUpdateIfActiveRemote(g) {
+      if (state.activeGraphics.includes(`gl_${g.id}`)) {
+        const variables = {};
+        (g.variables || []).forEach(v => { if (v.key) variables[v.key] = v.value; });
+        const payload = {
+          action: 'update',
+          graphicId: `gl_${g.id}`,
+          variables
+        };
+        sendTrigger(payload);
+      }
+    }
+
+    document.getElementById('hide-all-btn').addEventListener('click', () => {
+      sendTrigger({ action: 'hideAll', transition: { duration: 600 } });
+    });
+
+    function escHtml(str) {
+      return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Cargar estado inicial via REST
+    fetch('/api/state')
+      .then(r => r.json())
+      .then(s => { state = s; renderGraphics(); })
+      .catch(() => {});
+
+    connect();
+    renderGraphics();
+  </script>
+</body>
+</html>

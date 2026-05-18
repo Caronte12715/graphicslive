@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Versus Match Screen</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Heebo:wght@500;700;900&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Heebo', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .vs-wrapper {
+      width: 1500px;
+      position: relative;
+      opacity: 0;
+      transform: scale(1.1);
+      transition: none;
+    }
+
+    .vs-wrapper.active {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .vs-wrapper.exit {
+      opacity: 0;
+      transform: scale(0.9);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .match-container {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      height: 200px;
+      position: relative;
+    }
+
+    /* Team Panels */
+    .team-panel {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 60px;
+      clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team-panel.left {
+      background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+      clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+      justify-content: flex-end;
+      padding-right: 120px;
+    }
+
+    .team-panel.right {
+      background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+      clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+      justify-content: flex-start;
+      padding-left: 120px;
+      margin-left: -15%;
+    }
+
+    .team-name {
+      font-family: 'Anton', sans-serif;
+      font-size: 80px;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+
+    /* VS Badge */
+    .vs-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 140px;
+      height: 140px;
+      background: linear-gradient(135deg, #fcd34d, #f59e0b);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.5);
+      z-index: 10;
+      border: 8px solid #0f172a;
+    }
+
+    .vs-text {
+      font-family: 'Anton', sans-serif;
+      font-size: 60px;
+      color: #0f172a;
+      line-height: 1;
+    }
+
+    /* Match Info Below */
+    .match-info {
+      position: absolute;
+      bottom: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      padding: 10px 40px;
+      border-radius: 0 0 20px 20px;
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="vs-wrapper" id="panel">
+    <div class="match-container">
+      
+      <div class="team-panel left">
+        <div class="team-name" id="team1">LOS ÁNGELES</div>
+      </div>
+      
+      <div class="vs-badge">
+        <div class="vs-text">VS</div>
+      </div>
+      
+      <div class="team-panel right">
+        <div class="team-name" id="team2">NUEVA YORK</div>
+      </div>
+
+    </div>
+    <div class="match-info" id="info">FINAL DE CAMPEONATO</div>
+  </div>
+
+  <script>
+    let isVisible = false;
+    const panel = document.getElementById('panel');
+
+    function play() {
+      if (isVisible) {
+        panel.classList.remove('active');
+        panel.classList.add('exit');
+        setTimeout(() => panel.classList.remove('exit'), 500); 
+        isVisible = false;
+      } else {
+        panel.classList.remove('exit');
+        void panel.offsetWidth;
+        panel.classList.add('active');
+        isVisible = true;
+      }
+    }
+
+    function update(incomingChange) {
+      try {
+        const changes = JSON.parse(incomingChange);
+        Object.entries(changes).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el && value !== undefined) {
+            el.innerText = value;
+          }
+        });
+      } catch (e) {
+        console.error("Error al actualizar:", e);
+      }
+    }
+  
+    // Fallback: escuchar mensajes postMessage de Orbit y leer URL params
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'update' && e.data.variables) {
+        if (typeof update === 'function') {
+          update(JSON.stringify(e.data.variables));
+        }
+      }
+      if (e.data?.action === 'out') {
+        if (typeof play === 'function') {
+          if (isVisible) play();
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const vars = {};
+      for(let [k,v] of params) {
+        if(k !== 'path') vars[k] = v;
+      }
+      if(Object.keys(vars).length > 0 && typeof update === 'function') {
+        update(JSON.stringify(vars));
+      }
+    });
+  </script>
+
+  <script name="graphics-data-definition" type="application/json+gdd">
+    {
+      "$schema": "https://superflytv.github.io/GraphicsDataDefinition/gdd-meta-schema/v1/schema.json",
+      "title": "Encuentro VS (Versus)",
+      "type": "object",
+      "properties": {
+        "team1": {
+          "type": "string",
+          "label": "Equipo 1 (Izquierda)",
+          "default": "LOS ÁNGELES",
+          "gddType": "single-line"
+        },
+        "team2": {
+          "type": "string",
+          "label": "Equipo 2 (Derecha)",
+          "default": "NUEVA YORK",
+          "gddType": "single-line"
+        },
+        "info": {
+          "type": "string",
+          "label": "Información (Ej: Gran Final)",
+          "default": "FINAL DE CAMPEONATO",
+          "gddType": "single-line"
+        }
+      }
+    }
+  </script>
+</body>
+</html>

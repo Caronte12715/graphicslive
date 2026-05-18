@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Upcoming Schedule</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 80px;
+    }
+
+    .schedule-wrapper {
+      width: 450px;
+      position: relative;
+      opacity: 0;
+      transform: translateX(100px);
+      transition: none;
+    }
+
+    .schedule-wrapper.active {
+      opacity: 1;
+      transform: translateX(0);
+      transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .schedule-wrapper.exit {
+      opacity: 0;
+      transform: translateX(100px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .schedule-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      background: #dc2626;
+      padding: 20px 30px;
+      color: white;
+      font-family: 'Oswald', sans-serif;
+      text-transform: uppercase;
+      font-size: 32px;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+    }
+
+    .panel-header svg {
+      width: 28px;
+      height: 28px;
+      fill: white;
+      margin-right: 15px;
+    }
+
+    .event-list {
+      padding: 20px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 15px;
+    }
+
+    .event-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .event-time {
+      font-weight: 600;
+      color: #f87171;
+      font-size: 20px;
+      min-width: 80px;
+    }
+
+    .event-title {
+      font-weight: 500;
+      color: white;
+      font-size: 20px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="schedule-wrapper" id="panel">
+    <div class="schedule-panel">
+      <div class="panel-header" id="header_text">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 002 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
+        </svg>
+        A CONTINUACIÓN
+      </div>
+      <div class="event-list">
+        <div class="event-item">
+          <div class="event-time" id="time1">10:00</div>
+          <div class="event-title" id="title1">Noticiero Matutino</div>
+        </div>
+        <div class="event-item">
+          <div class="event-time" id="time2">11:30</div>
+          <div class="event-title" id="title2">Debate Político</div>
+        </div>
+        <div class="event-item">
+          <div class="event-time" id="time3">13:00</div>
+          <div class="event-title" id="title3">Deportes en Vivo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isVisible = false;
+    const panel = document.getElementById('panel');
+
+    function play() {
+      if (isVisible) {
+        panel.classList.remove('active');
+        panel.classList.add('exit');
+        setTimeout(() => panel.classList.remove('exit'), 500); 
+        isVisible = false;
+      } else {
+        panel.classList.remove('exit');
+        void panel.offsetWidth;
+        panel.classList.add('active');
+        isVisible = true;
+      }
+    }
+
+    function update(incomingChange) {
+      try {
+        const changes = JSON.parse(incomingChange);
+        Object.entries(changes).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el && value !== undefined) {
+            el.innerText = value;
+          }
+        });
+      } catch (e) {
+        console.error("Error al actualizar:", e);
+      }
+    }
+  
+    // Fallback: escuchar mensajes postMessage de Orbit y leer URL params
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'update' && e.data.variables) {
+        if (typeof update === 'function') {
+          update(JSON.stringify(e.data.variables));
+        }
+      }
+      if (e.data?.action === 'out') {
+        if (typeof play === 'function') {
+          if (isVisible) play();
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const vars = {};
+      for(let [k,v] of params) {
+        if(k !== 'path') vars[k] = v;
+      }
+      if(Object.keys(vars).length > 0 && typeof update === 'function') {
+        update(JSON.stringify(vars));
+      }
+    });
+  </script>
+
+  <script name="graphics-data-definition" type="application/json+gdd">
+    {
+      "$schema": "https://superflytv.github.io/GraphicsDataDefinition/gdd-meta-schema/v1/schema.json",
+      "title": "Agenda / Próximamente",
+      "type": "object",
+      "properties": {
+        "header_text": {
+          "type": "string",
+          "label": "Título de Panel",
+          "default": "A CONTINUACIÓN",
+          "gddType": "single-line"
+        },
+        "time1": {
+          "type": "string",
+          "label": "Hora 1",
+          "default": "10:00",
+          "gddType": "single-line"
+        },
+        "title1": {
+          "type": "string",
+          "label": "Evento 1",
+          "default": "Noticiero Matutino",
+          "gddType": "single-line"
+        },
+        "time2": {
+          "type": "string",
+          "label": "Hora 2",
+          "default": "11:30",
+          "gddType": "single-line"
+        },
+        "title2": {
+          "type": "string",
+          "label": "Evento 2",
+          "default": "Debate Político",
+          "gddType": "single-line"
+        },
+        "time3": {
+          "type": "string",
+          "label": "Hora 3",
+          "default": "13:00",
+          "gddType": "single-line"
+        },
+        "title3": {
+          "type": "string",
+          "label": "Evento 3",
+          "default": "Deportes en Vivo",
+          "gddType": "single-line"
+        }
+      }
+    }
+  </script>
+</body>
+</html>

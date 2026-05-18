@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Temporizador</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&family=Inter:wght@500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 1920px; height: 1080px;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    #timer-wrap {
+      position: absolute;
+      top: 40px;
+      left: 60px;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: opacity 0.4s, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    #timer-wrap.in  { opacity: 1; transform: scale(1); }
+    #timer-wrap.out { opacity: 0; transform: scale(0.9); transition: all 0.3s ease; }
+
+    #timer-box {
+      background: rgba(10,10,20,0.88);
+      backdrop-filter: blur(12px);
+      border-radius: 10px;
+      padding: 14px 24px;
+      border: 1px solid rgba(124,58,237,0.35);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+
+    #timer-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: #7c3aed;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    #timer-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 52px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    #timer-display.warning { color: #eab308; }
+    #timer-display.danger  { color: #ef4444; animation: flash 0.5s ease infinite; }
+
+    @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  </style>
+</head>
+<body>
+  <div id="timer-wrap">
+    <div id="timer-box">
+      <div id="timer-label">TIEMPO</div>
+      <div id="timer-display">00:00</div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const modo   = params.get('modo') || 'up';    // up = cronómetro, down = cuenta regresiva
+    const inicio = parseInt(params.get('inicio')) || 0; // segundos (para countdown)
+    const label  = params.get('etiqueta') || 'TIEMPO';
+    const warnAt = parseInt(params.get('alerta')) || 30; // segundos para amarillo (countdown)
+    const dangAt = parseInt(params.get('peligro')) || 10;
+
+    document.getElementById('timer-label').textContent = label;
+
+    let seconds = modo === 'down' ? inicio : 0;
+    let running = true;
+
+    const display = document.getElementById('timer-display');
+
+    function format(s) {
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      if (h > 0) return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+      return `${pad(m)}:${pad(sec)}`;
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function updateColor() {
+      if (modo === 'down') {
+        display.className = '';
+        if (seconds <= dangAt) display.classList.add('danger');
+        else if (seconds <= warnAt) display.classList.add('warning');
+      }
+    }
+
+    function tick() {
+      if (!running) return;
+      display.textContent = format(seconds);
+      updateColor();
+      if (modo === 'up') seconds++;
+      else if (seconds > 0) seconds--;
+    }
+
+    tick();
+    const timer = setInterval(tick, 1000);
+
+    const wrap = document.getElementById('timer-wrap');
+    setTimeout(() => wrap.classList.add('in'), 100);
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'out') {
+        wrap.classList.remove('in');
+        wrap.classList.add('out');
+        running = false;
+        clearInterval(timer);
+      }
+      if (e.data?.action === 'update') {
+        const v = e.data.variables || {};
+        if (v.pausa === 'true')  running = false;
+        if (v.pausa === 'false') running = true;
+        if (v.reset) { seconds = modo === 'down' ? inicio : 0; }
+        if (v.etiqueta) document.getElementById('timer-label').textContent = v.etiqueta;
+      }
+    });
+  </script>
+</body>
+</html>

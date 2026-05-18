@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Título Pantalla Completa</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:1920px; height:1080px; background:transparent; overflow:hidden; }
+
+    #title-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      opacity: 0;
+      transition: opacity .8s ease;
+    }
+    #title-wrap.in { opacity: 1; }
+    #title-wrap.out { opacity: 0; }
+
+    /* Fondo oscuro gradient */
+    #title-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 1000px 600px at 50% 50%, rgba(124,58,237,0.12) 0%, transparent 70%),
+        linear-gradient(180deg, rgba(5,5,15,0.95) 0%, rgba(10,10,25,0.98) 100%);
+    }
+
+    /* Líneas decorativas */
+    .deco-line {
+      position: absolute;
+      left: 120px; right: 120px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124,58,237,0.4) 20%, rgba(124,58,237,0.4) 80%, transparent);
+    }
+    .deco-line.top    { top: 120px; }
+    .deco-line.bottom { bottom: 120px; }
+
+    /* Partículas de esquina */
+    .corner {
+      position: absolute;
+      width: 60px; height: 60px;
+      border-color: rgba(124,58,237,0.35);
+      border-style: solid;
+    }
+    .corner.tl { top:60px; left:60px; border-width:2px 0 0 2px; border-radius:4px 0 0 0; }
+    .corner.tr { top:60px; right:60px; border-width:2px 2px 0 0; border-radius:0 4px 0 0; }
+    .corner.bl { bottom:60px; left:60px; border-width:0 0 2px 2px; border-radius:0 0 0 4px; }
+    .corner.br { bottom:60px; right:60px; border-width:0 2px 2px 0; border-radius:0 0 4px 0; }
+
+    #title-content {
+      position: relative;
+      text-align: center;
+      z-index: 1;
+    }
+
+    #title-super {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: #7c3aed;
+      font-weight: 600;
+      margin-bottom: 16px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all .6s ease .3s;
+    }
+
+    #title-main {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 120px;
+      letter-spacing: 4px;
+      color: #fff;
+      line-height: .9;
+      text-shadow: 0 0 60px rgba(124,58,237,0.3);
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all .7s cubic-bezier(0.16,1,0.3,1) .15s;
+    }
+
+    #title-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 300;
+      color: #8888aa;
+      letter-spacing: 2px;
+      margin-top: 18px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all .6s ease .45s;
+    }
+
+    #title-bar {
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #7c3aed, #06b6d4);
+      border-radius: 2px;
+      margin: 20px auto 0;
+      transition: width .8s cubic-bezier(0.16,1,0.3,1) .2s;
+    }
+
+    /* Al activarse */
+    #title-wrap.in #title-super,
+    #title-wrap.in #title-main,
+    #title-wrap.in #title-sub { opacity:1; transform:translateY(0); }
+    #title-wrap.in #title-bar { width: 300px; }
+  </style>
+</head>
+<body>
+  <div id="title-wrap">
+    <div id="title-bg"></div>
+    <div class="deco-line top"></div>
+    <div class="deco-line bottom"></div>
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <div id="title-content">
+      <div id="title-super">Especial</div>
+      <div id="title-main">TÍTULO PRINCIPAL</div>
+      <div id="title-bar"></div>
+      <div id="title-sub">Subtítulo · Descripción del segmento</div>
+    </div>
+  </div>
+
+  <script>
+    const p = new URLSearchParams(window.location.search);
+    document.getElementById('title-super').textContent = p.get('super')    || 'Especial';
+    document.getElementById('title-main').textContent  = p.get('titulo')   || 'TÍTULO PRINCIPAL';
+    document.getElementById('title-sub').textContent   = p.get('subtitulo')|| 'Subtítulo · Descripción del segmento';
+
+    const wrap = document.getElementById('title-wrap');
+    setTimeout(() => wrap.classList.add('in'), 100);
+
+    window.addEventListener('message', (e) => {
+      const { action, variables: v } = e.data || {};
+      if (action === 'out') { wrap.classList.remove('in'); wrap.classList.add('out'); }
+      if (action === 'update' && v) {
+        if (v.titulo)    document.getElementById('title-main').textContent  = v.titulo;
+        if (v.subtitulo) document.getElementById('title-sub').textContent   = v.subtitulo;
+        if (v.super)     document.getElementById('title-super').textContent = v.super;
+      }
+    });
+  </script>
+</body>
+</html>

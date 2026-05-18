@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbit — Control Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ── Titlebar ── -->
+  <div id="titlebar">
+    <div id="titlebar-left">
+      <div id="app-logo" style="background: transparent; border: none;">
+        <img src="../assets/icons/icon.png" width="24" height="24" style="border-radius: 6px; object-fit: contain;" alt="Orbit Logo">
+      </div>
+      <span id="app-title">Orbit</span>
+      <span id="project-name-display">— Sin proyecto</span>
+      <span id="app-author">by David Guevara</span>
+    </div>
+    <div id="titlebar-actions">
+      <button class="tb-btn" id="btn-new-project" title="Nuevo proyecto">＋ Nuevo</button>
+      <button class="tb-btn" id="btn-load-project" title="Cargar proyecto">📂 Cargar</button>
+      <button class="tb-btn" id="btn-save-project" title="Guardar proyecto">💾 Guardar</button>
+    </div>
+  </div>
+
+  <!-- ── Layout Principal ── -->
+  <div id="app-layout">
+
+    <!-- ── Sidebar izquierdo: Outputs ── -->
+    <aside id="outputs-panel">
+      <div class="panel-header">
+        <span class="panel-title">OUTPUTS</span>
+        <button class="icon-btn" id="btn-add-output" title="Agregar output">+</button>
+      </div>
+      <div id="outputs-list"></div>
+
+      <!-- ── Acceso Remoto / Túnel ── -->
+      <div id="tunnel-section">
+        <div class="tunnel-header">
+          <span class="panel-title" style="color:var(--text-3)">ACCESO REMOTO</span>
+        </div>
+
+        <!-- Estado del túnel -->
+        <div id="tunnel-status-card">
+          <div id="tunnel-offline">
+            <p class="tunnel-desc">Conecta desde <strong>otra red</strong> — otro país, otra ciudad</p>
+            <button id="btn-tunnel-start" class="tunnel-start-btn">
+              🌐 Activar Túnel Público
+            </button>
+          </div>
+
+          <div id="tunnel-online" style="display:none">
+            <div class="tunnel-active-badge">
+              <span class="tunnel-dot"></span>
+              TÚNEL ACTIVO
+            </div>
+            <div class="tunnel-url-label">Software de Video (Cualquier PC):</div>
+            <div class="tunnel-url" id="tunnel-output-url"></div>
+            <div class="tunnel-url-label" style="margin-top:8px">Panel Remoto (Celular):</div>
+            <div class="tunnel-url accent" id="tunnel-remote-url"></div>
+            <button id="btn-tunnel-qr" class="tunnel-action-btn">📱 Ver QR</button>
+            <button id="btn-tunnel-copy-out" class="tunnel-action-btn">📋 Copiar URL</button>
+            <button id="btn-tunnel-stop" class="tunnel-stop-btn">⏹ Detener Túnel</button>
+          </div>
+        </div>
+
+        <!-- Red local -->
+        <div id="local-remote-section">
+          <div class="tunnel-url-label">Panel Remoto (misma red):</div>
+          <div class="tunnel-url dim" id="local-remote-url">Detectando...</div>
+          <button id="btn-local-remote-qr" class="tunnel-action-btn">📱 QR Red Local</button>
+        </div>
+      </div>
+
+      <div id="output-instructions">
+        <p>Software de video (vMix/OBS) → Navegador → URL del output</p>
+      </div>
+    </aside>
+
+    <!-- ── Centro: Rundown de gráficos ── -->
+    <main id="rundown-panel">
+      <div class="panel-header">
+        <span class="panel-title">GRÁFICOS</span>
+        <div class="panel-header-actions">
+          <button class="action-btn secondary" id="btn-load-templates">🎨 Templates</button>
+          <button class="action-btn secondary" id="btn-load-files">📁 Cargar HTML</button>
+          <button class="action-btn danger" id="btn-hide-all">⬛ Ocultar Todo</button>
+        </div>
+      </div>
+
+      <!-- ON AIR VISUALIZER (PREVIEW MONITOR) -->
+      <div id="on-air-visualizer" style="display: none; padding: 12px; margin-bottom: 10px;">
+        <div class="on-air-label" style="margin-bottom: 8px;"><span class="live-dot"></span> PROGRAM PREVIEW</div>
+        <div id="preview-wrapper" class="monitor-wrapper">
+          <iframe id="preview-iframe" src="" scrolling="no"></iframe>
+        </div>
+      </div>
+
+      <!-- Drop zone -->
+      <div id="drop-zone">
+        <div id="drop-zone-inner">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M12 16V8M12 8L9 11M12 8L15 11" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 15v2a4 4 0 004 4h10a4 4 0 004-4v-2" stroke="#555" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <p>Arrastra archivos <strong>.html</strong> aquí</p>
+          <p class="sub">o usa el botón "Cargar HTML"</p>
+        </div>
+      </div>
+
+      <!-- Lista de gráficos -->
+      <div id="graphics-list"></div>
+    </main>
+
+    <!-- ── Sidebar derecho: Propiedades ── -->
+    <aside id="properties-panel">
+      <div class="panel-header">
+        <span class="panel-title">PROPIEDADES</span>
+      </div>
+      <div id="properties-content">
+        <div id="no-selection-msg">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="3" stroke="#333" stroke-width="2"/>
+            <path d="M3 9h18M9 21V9" stroke="#333" stroke-width="2"/>
+          </svg>
+          <p>Selecciona un gráfico</p>
+        </div>
+        <div id="prop-form" style="display:none">
+          <div class="prop-section">
+            <label class="prop-label">Nombre</label>
+            <input type="text" id="prop-name" class="prop-input" placeholder="Nombre del gráfico">
+          </div>
+          <div class="prop-section">
+            <label class="prop-label">Output destino</label>
+            <select id="prop-output" class="prop-input">
+              <option value="all">Todos los outputs</option>
+            </select>
+          </div>
+          <div class="prop-section">
+            <label class="prop-label">Capa (Z-Index)</label>
+            <input type="number" id="prop-zindex" class="prop-input" value="10" min="1" max="100">
+          </div>
+          <div class="prop-section" style="display: flex; gap: 8px; align-items: flex-end;">
+            <div style="flex: 1;">
+              <label class="prop-label">Escala</label>
+              <input type="number" id="prop-scale" class="prop-input" value="1.0" step="0.1" min="0.1" max="5.0">
+            </div>
+            <div style="flex: 1;">
+              <label class="prop-label">Pos X</label>
+              <input type="number" id="prop-posx" class="prop-input" value="0" step="10">
+            </div>
+            <div style="flex: 1;">
+              <label class="prop-label">Pos Y</label>
+              <input type="number" id="prop-posy" class="prop-input" value="0" step="10">
+            </div>
+          </div>
+          <div class="prop-section">
+            <label class="prop-label">📝 Contenido del gráfico</label>
+            <p class="prop-hint" id="variables-hint">Escribe los datos que aparecerán en pantalla</p>
+            <div id="variables-container"></div>
+            <button class="action-btn secondary small" id="btn-add-variable">+ Variable personalizada</button>
+          </div>
+          <div class="prop-section">
+            <label class="prop-label">Tipo de transición</label>
+            <select id="prop-transition-type" class="prop-input">
+              <option value="fade">Fade (Desvanecer)</option>
+              <option value="slide-left">Slide Left (Izquierda)</option>
+              <option value="slide-right">Slide Right (Derecha)</option>
+              <option value="slide-up">Slide Up (Abajo)</option>
+              <option value="slide-down">Slide Down (Arriba)</option>
+              <option value="zoom">Zoom</option>
+              <option value="spin">Spin (Girar)</option>
+            </select>
+          </div>
+          <div class="prop-section">
+            <label class="prop-label">Duración transición</label>
+            <select id="prop-transition" class="prop-input">
+              <option value="600">Estándar (600ms)</option>
+              <option value="300">Rápida (300ms)</option>
+              <option value="1000">Lenta (1s)</option>
+            </select>
+          </div>
+          <!-- ── Auto-hide Timer ── -->
+          <div class="prop-section">
+            <label class="prop-label">⏱ Tiempo en pantalla</label>
+            <div class="timer-input-wrap">
+              <div class="timer-presets">
+                <button class="timer-preset" data-val="0">Manual</button>
+                <button class="timer-preset" data-val="3">3s</button>
+                <button class="timer-preset" data-val="5">5s</button>
+                <button class="timer-preset" data-val="7">7s</button>
+                <button class="timer-preset" data-val="10">10s</button>
+              </div>
+              <div class="timer-custom-row">
+                <input type="number" id="prop-duration" class="prop-input" value="0" min="0" max="600" step="1" placeholder="0 = manual">
+                <span class="timer-unit">seg</span>
+              </div>
+              <p class="timer-hint" id="timer-hint">Manual: se oculta al presionar OUT</p>
+            </div>
+          </div>
+          <div class="prop-actions">
+            <button class="action-btn danger small" id="btn-remove-graphic">🗑 Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ── Status Bar ── -->
+  <footer id="status-bar">
+    <div id="status-left">
+      <span id="status-server" class="status-dot offline">●</span>
+      <span id="status-server-text">Iniciando servidor...</span>
+    </div>
+    <div id="status-right">
+      <span id="status-resolution">1920×1080</span>
+      <button class="tb-btn small" id="btn-resolution">⚙ Resolución</button>
+      <span id="status-author">by David Guevara</span>
+    </div>
+  </footer>
+
+  <!-- ── Modal: Templates ── -->
+  <div id="modal-templates" class="modal" style="display:none">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Templates incluidos</h2>
+        <button class="modal-close" id="close-templates">✕</button>
+      </div>
+      <div id="templates-grid"></div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Resolución ── -->
+  <div id="modal-resolution" class="modal" style="display:none">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box small-modal">
+      <div class="modal-header">
+        <h2>Resolución de Output</h2>
+        <button class="modal-close" id="close-resolution">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:#aaa;margin-bottom:16px">Selecciona la resolución del output para tu software</p>
+        <div id="resolution-options">
+          <button class="res-btn" data-w="1280" data-h="720">HD — 1280×720</button>
+          <button class="res-btn active" data-w="1920" data-h="1080">Full HD — 1920×1080</button>
+          <button class="res-btn" data-w="3840" data-h="2160">4K UHD — 3840×2160</button>
+          <button class="res-btn custom-btn" data-w="custom">Personalizado...</button>
+        </div>
+        <div id="custom-res" style="display:none;margin-top:16px;">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" id="custom-w" class="prop-input" placeholder="Ancho" style="width:100px">
+            <span style="color:#777">×</span>
+            <input type="number" id="custom-h" class="prop-input" placeholder="Alto" style="width:100px">
+            <button class="action-btn" id="btn-apply-custom-res">Aplicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: QR Code ── -->
+  <div id="modal-qr" class="modal" style="display:none">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box small-modal">
+      <div class="modal-header">
+        <h2 id="qr-modal-title">Código QR</h2>
+        <button class="modal-close" id="close-qr">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center">
+        <p id="qr-modal-desc" style="color:#aaa;margin-bottom:16px;font-size:13px"></p>
+        <div id="qr-canvas-container" style="display:flex;justify-content:center;margin-bottom:16px">
+          <canvas id="qr-canvas" width="220" height="220" style="border-radius:12px;background:#fff;padding:10px"></canvas>
+        </div>
+        <div id="qr-url-display" style="font-family:var(--mono-font,monospace);font-size:11px;color:#7c3aed;word-break:break-all;background:rgba(124,58,237,.1);border-radius:6px;padding:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ticker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 1920px; height: 1080px;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+
+    #ticker-wrap {
+      position: absolute;
+      bottom: 0;
+      left: 0; right: 0;
+      height: 52px;
+      transform: translateY(100%);
+      transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+      display: flex;
+    }
+
+    #ticker-wrap.in  { transform: translateY(0); }
+    #ticker-wrap.out { transform: translateY(100%); transition: transform 0.4s ease; }
+
+    #ticker-label {
+      background: #7c3aed;
+      padding: 0 22px;
+      display: flex;
+      align-items: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+      z-index: 2;
+      position: relative;
+    }
+
+    #ticker-label::after {
+      content: '';
+      position: absolute;
+      right: -16px; top: 0; bottom: 0;
+      width: 0;
+      border-top: 52px solid transparent;
+      border-left: 16px solid #7c3aed;
+    }
+
+    #ticker-track {
+      flex: 1;
+      background: rgba(10, 10, 20, 0.9);
+      backdrop-filter: blur(8px);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      border-top: 2px solid rgba(124,58,237,0.5);
+    }
+
+    #ticker-text {
+      display: inline-block;
+      white-space: nowrap;
+      font-size: 20px;
+      font-weight: 400;
+      color: #f0f0f5;
+      padding-left: 40px;
+      animation: scroll-left 20s linear infinite;
+    }
+
+    @keyframes scroll-left {
+      from { transform: translateX(100vw); }
+      to   { transform: translateX(-100%); }
+    }
+  </style>
+</head>
+<body>
+  <div id="ticker-wrap">
+    <div id="ticker-label">NOTICIAS</div>
+    <div id="ticker-track">
+      <span id="ticker-text">Texto del ticker — Agrega tu mensaje aquí</span>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const texto    = params.get('texto')    || 'Texto del ticker — Agrega tu mensaje aquí';
+    const etiqueta = params.get('etiqueta') || 'NOTICIAS';
+    const velocidad = parseFloat(params.get('velocidad')) || 20;
+
+    document.getElementById('ticker-text').textContent  = texto;
+    document.getElementById('ticker-label').textContent = etiqueta;
+    document.getElementById('ticker-text').style.animationDuration = velocidad + 's';
+
+    const wrap = document.getElementById('ticker-wrap');
+    setTimeout(() => wrap.classList.add('in'), 100);
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'out') {
+        wrap.classList.remove('in');
+        wrap.classList.add('out');
+      }
+      if (e.data?.action === 'update') {
+        const v = e.data.variables || {};
+        if (v.texto)    document.getElementById('ticker-text').textContent  = v.texto;
+        if (v.etiqueta) document.getElementById('ticker-label').textContent = v.etiqueta;
+      }
+    });
+  </script>
+</body>
+</html>

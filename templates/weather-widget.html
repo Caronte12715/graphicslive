@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather Widget</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Jost', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-start;
+      padding: 60px 60px 0 0;
+    }
+
+    .weather-wrapper {
+      position: relative;
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+
+    .weather-wrapper.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .weather-wrapper.exit {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .weather-card {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.9), rgba(59, 130, 246, 0.95));
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      padding: 20px 30px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .weather-icon {
+      width: 60px;
+      height: 60px;
+      margin-right: 20px;
+    }
+
+    .weather-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: #fbbf24; /* Sun color */
+      filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
+    }
+
+    .weather-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .temp-text {
+      font-size: 42px;
+      font-weight: 600;
+      line-height: 1;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .condition-text {
+      font-size: 16px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    .location-text {
+      font-size: 14px;
+      font-weight: 400;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="weather-wrapper" id="panel">
+    <div class="weather-card">
+      <div class="weather-icon">
+        <!-- Sun Icon -->
+        <svg viewBox="0 0 24 24">
+          <path d="M12 4.5C7.86 4.5 4.5 7.86 4.5 12S7.86 19.5 12 19.5 19.5 16.14 19.5 12 16.14 4.5 12 4.5zM12 2C17.52 2 22 6.48 22 12S17.52 22 12 22 2 17.52 2 12 6.48 2 12 2zm8 10h3v2h-3v-2zM1 10h3v2H1v-2zm10-9h2v3h-2V1zm0 19h2v3h-2v-3zm7.07-14.07l2.12-2.12 1.42 1.42-2.12 2.12-1.42-1.42zM4.93 19.07l2.12-2.12 1.42 1.42-2.12 2.12-1.42-1.42zm14.14 14.14l-2.12-2.12-1.42 1.42 2.12 2.12 1.42-1.42zM4.93 4.93l2.12 2.12 1.42-1.42-2.12-2.12-1.42 1.42z"/>
+        </svg>
+      </div>
+      <div class="weather-info">
+        <div class="temp-text" id="temp">28°C</div>
+        <div class="condition-text" id="condition">Soleado</div>
+        <div class="location-text" id="location">Madrid, ES</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isVisible = false;
+    const panel = document.getElementById('panel');
+
+    function play() {
+      if (isVisible) {
+        panel.classList.remove('active');
+        panel.classList.add('exit');
+        setTimeout(() => panel.classList.remove('exit'), 500); 
+        isVisible = false;
+      } else {
+        panel.classList.remove('exit');
+        void panel.offsetWidth;
+        panel.classList.add('active');
+        isVisible = true;
+      }
+    }
+
+    function update(incomingChange) {
+      try {
+        const changes = JSON.parse(incomingChange);
+        Object.entries(changes).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el && value !== undefined) {
+            el.innerText = value;
+          }
+        });
+      } catch (e) {
+        console.error("Error al actualizar:", e);
+      }
+    }
+  
+    // Fallback: escuchar mensajes postMessage de Orbit y leer URL params
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'update' && e.data.variables) {
+        if (typeof update === 'function') {
+          update(JSON.stringify(e.data.variables));
+        }
+      }
+      if (e.data?.action === 'out') {
+        if (typeof play === 'function') {
+          if (isVisible) play();
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const vars = {};
+      for(let [k,v] of params) {
+        if(k !== 'path') vars[k] = v;
+      }
+      if(Object.keys(vars).length > 0 && typeof update === 'function') {
+        update(JSON.stringify(vars));
+      }
+    });
+  </script>
+
+  <script name="graphics-data-definition" type="application/json+gdd">
+    {
+      "$schema": "https://superflytv.github.io/GraphicsDataDefinition/gdd-meta-schema/v1/schema.json",
+      "title": "Widget del Clima",
+      "type": "object",
+      "properties": {
+        "temp": {
+          "type": "string",
+          "label": "Temperatura",
+          "default": "28°C",
+          "gddType": "single-line"
+        },
+        "condition": {
+          "type": "string",
+          "label": "Condición (Ej: Soleado)",
+          "default": "Soleado",
+          "gddType": "single-line"
+        },
+        "location": {
+          "type": "string",
+          "label": "Ubicación",
+          "default": "Madrid, ES",
+          "gddType": "single-line"
+        }
+      }
+    }
+  </script>
+</body>
+</html>

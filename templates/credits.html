@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Créditos Animados</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:1920px; height:1080px; background:transparent; overflow:hidden; font-family:'Inter',sans-serif; }
+
+    #credits-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity .8s ease;
+    }
+    #credits-wrap.in { opacity: 1; }
+    #credits-wrap.out { opacity: 0; }
+
+    /* Fondo gradiente suave */
+    #credits-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0) 0%,
+        rgba(5,5,15,0.85) 30%,
+        rgba(5,5,15,0.95) 50%,
+        rgba(5,5,15,0.85) 70%,
+        rgba(0,0,0,0) 100%
+      );
+    }
+
+    /* Contenedor del scroll */
+    #credits-scroll-container {
+      position: relative;
+      width: 600px;
+      height: 1080px;
+      overflow: hidden;
+    }
+
+    #credits-content {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      top: 100%;
+      padding: 0 0 200px 0;
+    }
+
+    .credits-section-title {
+      font-size: 13px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #7c3aed;
+      font-weight: 600;
+      margin-top: 50px;
+      margin-bottom: 20px;
+    }
+
+    .credits-section-title:first-child { margin-top: 0; }
+
+    .credit-name {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.6;
+    }
+
+    .credit-role {
+      font-size: 13px;
+      font-weight: 300;
+      color: #8888aa;
+      margin-bottom: 10px;
+      line-height: 1;
+    }
+
+    .credits-divider {
+      width: 60px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #7c3aed, transparent);
+      margin: 30px auto;
+    }
+
+    .credits-logo {
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: #444466;
+      margin-top: 60px;
+    }
+
+    /* Línea decorativa izquierda/derecha */
+    #credits-line-left, #credits-line-right {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(124,58,237,0.3) 30%, rgba(124,58,237,0.3) 70%, transparent);
+    }
+    #credits-line-left  { left: 0; }
+    #credits-line-right { right: 0; }
+  </style>
+</head>
+<body>
+  <div id="credits-wrap">
+    <div id="credits-bg"></div>
+    <div id="credits-scroll-container">
+      <div id="credits-line-left"></div>
+      <div id="credits-line-right"></div>
+      <div id="credits-content">
+        <!-- Se llena con JS desde la URL -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const p = new URLSearchParams(window.location.search);
+    const velocidad = parseFloat(p.get('velocidad')) || 60; // segundos para el scroll completo
+
+    // Parsear créditos desde la URL
+    // Formato: seccion1=Producción&nombre1=Juan García&rol1=Director&nombre2=María López&rol2=Productora
+    // seccion2=Música&nombre3=...
+
+    const content = document.getElementById('credits-content');
+
+    // Construir créditos desde parámetros
+    let html = '';
+    let i = 1;
+
+    // Secciones
+    for (let s = 1; s <= 10; s++) {
+      const sec = p.get(`seccion${s}`);
+      if (!sec) continue;
+      html += `<div class="credits-section-title">${sec}</div>`;
+
+      // Nombres en esa sección
+      while (p.get(`nombre${i}`)) {
+        const nombre = p.get(`nombre${i}`);
+        const rol    = p.get(`rol${i}`) || '';
+        html += `<div class="credit-name">${nombre}</div>`;
+        if (rol) html += `<div class="credit-role">${rol}</div>`;
+        i++;
+      }
+
+      html += '<div class="credits-divider"></div>';
+    }
+
+    // Fallback si no hay parámetros
+    if (!html) {
+      html = `
+        <div class="credits-section-title">Producción</div>
+        <div class="credit-name">Nombre del Productor</div>
+        <div class="credit-role">Productor Ejecutivo</div>
+        <div class="credits-divider"></div>
+        <div class="credits-section-title">Presentación</div>
+        <div class="credit-name">Nombre del Presentador</div>
+        <div class="credit-role">Conductor</div>
+        <div class="credits-divider"></div>
+        <div class="credits-section-title">Técnica</div>
+        <div class="credit-name">Nombre del Técnico</div>
+        <div class="credit-role">Director de Cámaras</div>
+      `;
+    }
+
+    const produccion = p.get('produccion') || '';
+    if (produccion) html += `<div class="credits-logo">${produccion}</div>`;
+
+    content.innerHTML = html;
+
+    // Animación de scroll
+    const wrap = document.getElementById('credits-wrap');
+    setTimeout(() => {
+      wrap.classList.add('in');
+      const totalHeight = content.offsetHeight + 1080;
+      content.style.transition = `top ${velocidad}s linear`;
+      setTimeout(() => {
+        content.style.top = `-${content.offsetHeight}px`;
+      }, 200);
+    }, 100);
+
+    window.addEventListener('message', (e) => {
+      const { action } = e.data || {};
+      if (action === 'out') { wrap.classList.remove('in'); wrap.classList.add('out'); }
+    });
+  </script>
+</body>
+</html>

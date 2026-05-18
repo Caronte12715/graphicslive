@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Quote Box Graphic</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@1,300;1,700&family=Montserrat:wght@500;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .quote-wrapper {
+      width: 1200px;
+      position: relative;
+      opacity: 0;
+      transform: scale(0.9) translateY(30px);
+      transition: none;
+    }
+
+    .quote-wrapper.active {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .quote-wrapper.exit {
+      opacity: 0;
+      transform: scale(0.95) translateY(-30px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .quote-card {
+      background: linear-gradient(145deg, rgba(20, 25, 40, 0.95), rgba(10, 15, 25, 0.98));
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 60px 80px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 2px 20px rgba(255,255,255,0.02);
+      position: relative;
+    }
+
+    .quote-icon {
+      position: absolute;
+      top: -30px;
+      left: 60px;
+      width: 80px;
+      height: 80px;
+      background: #f59e0b;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 10px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    .quote-icon svg {
+      width: 40px;
+      height: 40px;
+      fill: #fff;
+    }
+
+    .quote-text {
+      font-family: 'Merriweather', serif;
+      font-size: 42px;
+      line-height: 1.5;
+      color: #f8fafc;
+      font-style: italic;
+      font-weight: 300;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .author-container {
+      display: flex;
+      align-items: center;
+      border-top: 2px solid rgba(255,255,255,0.05);
+      padding-top: 30px;
+    }
+
+    .author-line {
+      width: 40px;
+      height: 3px;
+      background: #f59e0b;
+      margin-right: 20px;
+    }
+
+    .author-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .author-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .author-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #94a3b8;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="quote-wrapper" id="panel">
+    <div class="quote-card">
+      <div class="quote-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+        </svg>
+      </div>
+      <div class="quote-text" id="quote">"La innovación es lo que distingue a los líderes de los seguidores."</div>
+      <div class="author-container">
+        <div class="author-line"></div>
+        <div class="author-info">
+          <div class="author-name" id="author">Steve Jobs</div>
+          <div class="author-title" id="title">Cofundador de Apple</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isVisible = false;
+    const panel = document.getElementById('panel');
+
+    function play() {
+      if (isVisible) {
+        panel.classList.remove('active');
+        panel.classList.add('exit');
+        setTimeout(() => panel.classList.remove('exit'), 500); 
+        isVisible = false;
+      } else {
+        panel.classList.remove('exit');
+        void panel.offsetWidth;
+        panel.classList.add('active');
+        isVisible = true;
+      }
+    }
+
+    function update(incomingChange) {
+      try {
+        const changes = JSON.parse(incomingChange);
+        Object.entries(changes).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el && value !== undefined) {
+            el.innerText = value;
+          }
+        });
+      } catch (e) {
+        console.error("Error al actualizar:", e);
+      }
+    }
+  
+    // Fallback: escuchar mensajes postMessage de Orbit y leer URL params
+    window.addEventListener('message', (e) => {
+      if (e.data?.action === 'update' && e.data.variables) {
+        if (typeof update === 'function') {
+          update(JSON.stringify(e.data.variables));
+        }
+      }
+      if (e.data?.action === 'out') {
+        if (typeof play === 'function') {
+          if (isVisible) play();
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const vars = {};
+      for(let [k,v] of params) {
+        if(k !== 'path') vars[k] = v;
+      }
+      if(Object.keys(vars).length > 0 && typeof update === 'function') {
+        update(JSON.stringify(vars));
+      }
+    });
+  </script>
+
+  <script name="graphics-data-definition" type="application/json+gdd">
+    {
+      "$schema": "https://superflytv.github.io/GraphicsDataDefinition/gdd-meta-schema/v1/schema.json",
+      "title": "Cita Destacada",
+      "type": "object",
+      "properties": {
+        "quote": {
+          "type": "string",
+          "label": "Cita",
+          "default": "\"La innovación es lo que distingue a los líderes de los seguidores.\"",
+          "gddType": "multi-line"
+        },
+        "author": {
+          "type": "string",
+          "label": "Autor",
+          "default": "Steve Jobs",
+          "gddType": "single-line"
+        },
+        "title": {
+          "type": "string",
+          "label": "Cargo o Título",
+          "default": "Cofundador de Apple",
+          "gddType": "single-line"
+        }
+      }
+    }
+  </script>
+</body>
+</html>

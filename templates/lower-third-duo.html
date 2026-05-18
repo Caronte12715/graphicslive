@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Lower Third Duo — Entrevista</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:1920px; height:1080px; background:transparent; overflow:hidden; font-family:'Inter',sans-serif; }
+
+    #lt-duo {
+      position: absolute;
+      bottom: 90px;
+      left: 80px;
+      display: flex;
+      gap: 14px;
+      opacity: 0;
+      transform: translateY(80px);
+      transition: opacity .5s ease, transform .6s cubic-bezier(0.16,1,0.3,1);
+    }
+    #lt-duo.in { opacity:1; transform:translateY(0); }
+    #lt-duo.out { opacity:0; transform:translateY(80px); transition: all .4s ease; }
+
+    .person-card {
+      background: rgba(8,8,18,0.93);
+      backdrop-filter: blur(10px);
+      border-radius: 8px;
+      padding: 14px 22px;
+      min-width: 320px;
+      position: relative;
+      overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .person-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+    }
+    .person-card.p1::before { background: linear-gradient(180deg,#7c3aed,#4f46e5); }
+    .person-card.p2::before { background: linear-gradient(180deg,#06b6d4,#0284c7); }
+
+    .person-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 4px; right: 0;
+      height: 1px;
+    }
+    .person-card.p1::after { background: linear-gradient(90deg,#7c3aed,transparent); }
+    .person-card.p2::after { background: linear-gradient(90deg,#06b6d4,transparent); }
+
+    .person-role {
+      font-size: 10px;
+      letter-spacing: 2px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .person-card.p1 .person-role { color: #a78bfa; }
+    .person-card.p2 .person-role { color: #22d3ee; }
+
+    .person-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+
+    .person-title {
+      font-size: 13px;
+      font-weight: 400;
+      color: #8888aa;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    /* Animación escalonada */
+    .person-card.p2 {
+      transition-delay: 0.12s;
+    }
+  </style>
+</head>
+<body>
+  <div id="lt-duo">
+    <div class="person-card p1">
+      <div class="person-role">Entrevistador</div>
+      <div class="person-name" id="p1-name">Nombre 1</div>
+      <div class="person-title" id="p1-title">Cargo · Medio</div>
+    </div>
+    <div class="person-card p2">
+      <div class="person-role" id="p2-role">Invitado</div>
+      <div class="person-name" id="p2-name">Nombre 2</div>
+      <div class="person-title" id="p2-title">Cargo · Institución</div>
+    </div>
+  </div>
+
+  <script>
+    const p = new URLSearchParams(window.location.search);
+    document.getElementById('p1-name').textContent  = p.get('nombre1')  || 'Nombre 1';
+    document.getElementById('p1-title').textContent = p.get('cargo1')   || 'Cargo · Medio';
+    document.getElementById('p2-name').textContent  = p.get('nombre2')  || 'Nombre 2';
+    document.getElementById('p2-title').textContent = p.get('cargo2')   || 'Cargo · Institución';
+    document.getElementById('p2-role').textContent  = p.get('rol2')     || 'Invitado';
+
+    const duo = document.getElementById('lt-duo');
+    setTimeout(() => duo.classList.add('in'), 100);
+
+    window.addEventListener('message', (e) => {
+      const { action, variables: v } = e.data || {};
+      if (action === 'out') { duo.classList.remove('in'); duo.classList.add('out'); }
+      if (action === 'update' && v) {
+        if (v.nombre1)  document.getElementById('p1-name').textContent  = v.nombre1;
+        if (v.cargo1)   document.getElementById('p1-title').textContent = v.cargo1;
+        if (v.nombre2)  document.getElementById('p2-name').textContent  = v.nombre2;
+        if (v.cargo2)   document.getElementById('p2-title').textContent = v.cargo2;
+      }
+    });
+  </script>
+</body>
+</html>
