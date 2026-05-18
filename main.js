@@ -2,6 +2,31 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron')
 const path = require('path');
 const { startServer, stopServer, broadcast } = require('./server/server');
 
+// ─── Manejo de Errores Globales (Prevención de Cierres Silenciosos) ───────────
+process.on('uncaughtException', (error) => {
+  console.error('[Orbit] Excepción no controlada:', error);
+  try {
+    dialog.showErrorBox(
+      'Error Crítico No Controlado',
+      `Ocurrió un error inesperado en el proceso principal:\n\n${error.stack || error.message || error}`
+    );
+  } catch (e) {
+    console.error('Error al mostrar cuadro de diálogo de excepción:', e);
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Orbit] Rechazo de promesa no controlado en:', promise, 'razón:', reason);
+  try {
+    dialog.showErrorBox(
+      'Rechazo de Promesa No Controlado',
+      `Ocurrió un error de promesa no controlado:\n\n${reason && (reason.stack || reason.message || reason)}`
+    );
+  } catch (e) {
+    console.error('Error al mostrar cuadro de diálogo de promesa:', e);
+  }
+});
+
 let mainWindow = null;
 const isDev = process.argv.includes('--dev');
 
@@ -47,9 +72,21 @@ app.whenReady().then(async () => {
   // Suprimir menú por defecto
   Menu.setApplicationMenu(null);
 
-  // Iniciar servidor Express + WebSocket
-  const serverInfo = await startServer();
-  console.log(`[Orbit] Servidor iniciado en puerto ${serverInfo.port}`);
+  try {
+    // Iniciar servidor Express + WebSocket
+    const serverInfo = await startServer();
+    console.log(`[Orbit] Servidor iniciado en puerto ${serverInfo.port}`);
+  } catch (error) {
+    console.error('[Orbit] No se pudo iniciar el servidor de gráficos:', error);
+    try {
+      dialog.showErrorBox(
+        'Advertencia de Inicialización de Red',
+        `No se pudo inicializar el servidor local de gráficos:\n${error.message || error}\n\nLa interfaz de la aplicación se abrirá, pero es posible que las salidas de red y OBS requieran configurarse manualmente o estén temporalmente limitadas.`
+      );
+    } catch (e) {
+      console.error('Error al mostrar advertencia de red:', e);
+    }
+  }
 
   createMainWindow();
 
@@ -59,8 +96,14 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  stopServer();
-  if (process.platform !== 'darwin') app.quit();
+  try {
+    stopServer();
+  } catch (error) {
+    console.error('[Orbit] Error al detener los servidores durante la salida:', error);
+  }
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
 // ─── IPC Handlers ─────────────────────────────────────────────────────────────

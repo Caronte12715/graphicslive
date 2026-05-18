@@ -27,15 +27,43 @@ function getLocalIP() {
 }
 
 // ─── Puerto disponible ────────────────────────────────────────────────────────
-async function findAvailablePort(startPort) {
+async function findAvailablePort(startPort, host = '0.0.0.0', attempts = 0) {
   const net = require('net');
+  const MAX_ATTEMPTS = 50;
+
   return new Promise((resolve) => {
+    if (attempts >= MAX_ATTEMPTS) {
+      // Fallback a cualquier puerto libre local en caso de colisión/restricción persistente
+      const srv = net.createServer();
+      srv.listen(0, '127.0.0.1', () => {
+        const port = srv.address().port;
+        srv.close(() => {
+          console.log(`[Red] Fallback a puerto asignado por el S.O.: ${port}`);
+          resolve(port);
+        });
+      });
+      return;
+    }
+
     const srv = net.createServer();
-    srv.listen(startPort, '0.0.0.0', () => {
+    srv.listen(startPort, host, () => {
       const port = srv.address().port;
       srv.close(() => resolve(port));
     });
-    srv.on('error', () => resolve(findAvailablePort(startPort + 1)));
+
+    srv.on('error', (err) => {
+      // Si el error es EADDRINUSE, el puerto está ocupado. Probamos el siguiente puerto en la misma dirección.
+      if (err.code === 'EADDRINUSE') {
+        resolve(findAvailablePort(startPort + 1, host, attempts + 1));
+      } else {
+        // Para otros errores (como problemas de privilegios con 0.0.0.0), intentamos en 127.0.0.1 con el mismo puerto
+        if (host === '0.0.0.0') {
+          resolve(findAvailablePort(startPort, '127.0.0.1', attempts + 1));
+        } else {
+          resolve(findAvailablePort(startPort + 1, '0.0.0.0', attempts + 1));
+        }
+      }
+    });
   });
 }
 
@@ -130,15 +158,29 @@ async function createOutput(port, isMain = false) {
       }
     });
 
-    httpSrv.listen(port, '0.0.0.0', () => {
-      console.log(`[Output ${id}] http://localhost:${port}`);
-      resolve({ id, port, app, server: httpSrv, wss, clients, isMain });
-    });
+    let currentHost = '0.0.0.0';
+
+    function tryListen(host) {
+      currentHost = host;
+      httpSrv.listen(port, host, () => {
+        console.log(`[Output ${id}] Escuchando en http://${host}:${port}`);
+        resolve({ id, port, host, app, server: httpSrv, wss, clients, isMain });
+      });
+    }
 
     httpSrv.on('error', (err) => {
-      if (err.code === 'EADDRINUSE') reject(new Error(`Puerto ${port} en uso`));
-      else reject(err);
+      if (httpSrv.listening) return;
+
+      if (currentHost === '0.0.0.0') {
+        console.warn(`[Output ${id}] Falló enlace en comodín (0.0.0.0). Reintentando en localhost (127.0.0.1)...`);
+        tryListen('127.0.0.1');
+      } else {
+        if (err.code === 'EADDRINUSE') reject(new Error(`Puerto ${port} en uso`));
+        else reject(err);
+      }
     });
+
+    tryListen('0.0.0.0');
   });
 }
 
@@ -168,17 +210,31 @@ async function startRemoteServer() {
       });
     });
 
-    httpSrv.listen(port, '0.0.0.0', () => {
-      const ip = getLocalIP();
-      console.log(`[Panel Remoto] http://${ip}:${port}`);
-      remoteServer = { server: httpSrv, wss, port };
-      resolve({ port, ip, url: `http://${ip}:${port}` });
-    });
+    let currentHost = '0.0.0.0';
+
+    function tryListen(host) {
+      currentHost = host;
+      httpSrv.listen(port, host, () => {
+        const ip = host === '0.0.0.0' ? getLocalIP() : '127.0.0.1';
+        console.log(`[Panel Remoto] http://${ip}:${port}`);
+        remoteServer = { server: httpSrv, wss, port, host };
+        resolve({ port, ip, url: `http://${ip}:${port}` });
+      });
+    }
 
     httpSrv.on('error', (err) => {
-      console.warn('[Panel Remoto] No pudo iniciarse:', err.message);
-      resolve({ port: null, url: null });
+      if (httpSrv.listening) return;
+
+      if (currentHost === '0.0.0.0') {
+        console.warn(`[Panel Remoto] Falló enlace en comodín (0.0.0.0). Reintentando en localhost (127.0.0.1)...`);
+        tryListen('127.0.0.1');
+      } else {
+        console.warn('[Panel Remoto] No pudo iniciarse:', err.message);
+        resolve({ port: null, url: null });
+      }
     });
+
+    tryListen('0.0.0.0');
   });
 }
 
@@ -262,10 +318,39 @@ async function startServer() {
 }
 
 function stopServer() {
-  if (activeTunnel) stopTunnel().catch(() => {});
-  outputs.forEach(({ server, wss }) => { wss.close(); server.close(); });
+  try {
+    if (activeTunnel) stopTunnel().catch(() => {});
+  } catch (e) {
+    console.error('Error al detener túnel:', e);
+  }
+
+  outputs.forEach(({ server, wss, id }) => {
+    try {
+      wss.close();
+    } catch (e) {
+      console.error(`Error al cerrar WebSocket de Output ${id}:`, e);
+    }
+    try {
+      server.close();
+    } catch (e) {
+      console.error(`Error al cerrar servidor HTTP de Output ${id}:`, e);
+    }
+  });
   outputs = [];
-  if (remoteServer) { remoteServer.wss.close(); remoteServer.server.close(); remoteServer = null; }
+
+  if (remoteServer) {
+    try {
+      remoteServer.wss.close();
+    } catch (e) {
+      console.error('Error al cerrar WebSocket de Panel Remoto:', e);
+    }
+    try {
+      remoteServer.server.close();
+    } catch (e) {
+      console.error('Error al cerrar servidor HTTP de Panel Remoto:', e);
+    }
+    remoteServer = null;
+  }
 }
 
 async function addOutput() {
