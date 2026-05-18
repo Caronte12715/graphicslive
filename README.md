@@ -82,6 +82,13 @@ El instalador se generará en la carpeta `dist/` con las configuraciones persona
 
 ---
 
+## 👤 Autor
+
+Desarrollado y mantenido por **David** ([Caronte12715](https://github.com/Caronte12715)).
+
+---
+
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia **MIT**. Consulta el archivo `LICENSE` para más detalles.
+
